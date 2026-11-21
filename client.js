@@ -26,6 +26,8 @@ window.__ModuleLoader__.load({
     const CAPPED_ATTR = 'data-sidebar-split-capped'
     const HIDDEN_ATTR = 'data-sidebar-split-hidden'
     const DRAGGING_ATTR = 'data-sidebar-split-dragging'
+    const RAIL_ATTR = 'data-sidebar-split-rail'
+    const REGION_ATTR = 'data-sidebar-split-region'
     const LIST_VAR = '--dsh-sidebar-split-list'
 
     /** Share of the split area the panel list gets until the user picks one. */
@@ -107,6 +109,34 @@ window.__ModuleLoader__.load({
     background: var(--dsw-alias-border-l3);
   }
 }
+[${RAIL_ATTR}] > nav {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+[${RAIL_ATTR}] > nav::-webkit-scrollbar { display: none; }
+[${RAIL_ATTR}][${CAPPED_ATTR}] > nav {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+[${RAIL_ATTR}] > [${REGION_ATTR}] { flex: none; }
+[${RAIL_ATTR}] > .${SASH_CLASS} {
+  height: 24px;
+  margin-inline: 0;
+  cursor: default;
+  pointer-events: none;
+}
+[${RAIL_ATTR}] > .${SASH_CLASS}::before {
+  left: calc(50% - 10px);
+  right: auto;
+  width: 20px;
+  background: var(--dsw-alias-border-l2);
+}
+[${RAIL_ATTR}] > .${SASH_CLASS}::after { display: none; }
 html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
   cursor: row-resize !important;
   user-select: none !important;
@@ -188,14 +218,35 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
         natural: nav.scrollHeight,
       })
 
+      const place = () => {
+        if (sash.previousElementSibling !== nav || sash.nextElementSibling !== region) root.insertBefore(sash, region)
+        if (!region.hasAttribute(REGION_ATTR)) region.setAttribute(REGION_ATTR, '')
+      }
+
+      /** The icon rail: a fixed divider, panel icons scroll above it, workspace icons keep their height below. */
+      const showRail = () => {
+        if (root.hasAttribute(ROOT_ATTR)) {
+          root.removeAttribute(ROOT_ATTR)
+          root.removeAttribute(HIDDEN_ATTR)
+          root.style.removeProperty(LIST_VAR)
+        }
+        if (!root.hasAttribute(RAIL_ATTR)) root.setAttribute(RAIL_ATTR, '')
+        place()
+        sash.tabIndex = -1
+        sash.setAttribute('aria-hidden', 'true')
+        root.toggleAttribute(CAPPED_ATTR, nav.scrollTop + nav.clientHeight < nav.scrollHeight - 1)
+      }
+
       const show = (state) => {
-        const rail = RAIL_CLASS.test(root.className)
-        if (rail) {
-          detach()
+        if (RAIL_CLASS.test(root.className)) {
+          showRail()
           return
         }
+        if (root.hasAttribute(RAIL_ATTR)) root.removeAttribute(RAIL_ATTR)
         if (!root.hasAttribute(ROOT_ATTR)) root.setAttribute(ROOT_ATTR, '')
-        if (sash.previousElementSibling !== nav || sash.nextElementSibling !== region) root.insertBefore(sash, region)
+        place()
+        sash.tabIndex = 0
+        sash.removeAttribute('aria-hidden')
         if (nav.id === '') nav.id = `dsh-sidebar-split-list-${Math.random().toString(36).slice(2, 8)}`
         sash.setAttribute('aria-controls', nav.id)
         sash.setAttribute('aria-labelledby', nav.id)
@@ -224,7 +275,7 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
       }
 
       const onPointerDown = (event) => {
-        if (event.button !== 0) return
+        if (event.button !== 0 || root.hasAttribute(RAIL_ATTR)) return
         event.preventDefault()
         sash.setPointerCapture(event.pointerId)
         drag = { id: event.pointerId, y: event.clientY, height: nav.getBoundingClientRect().height, moved: false, state: store.get() }
@@ -259,6 +310,7 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
         }
       }
       const onKeyDown = (event) => {
+        if (root.hasAttribute(RAIL_ATTR)) return
         const height = listLimit(store.get(), size())
         let state
         if (event.key === 'ArrowUp') state = stateForHeight(height - KEY_STEP, size())
@@ -283,7 +335,11 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
 
       const resize = new win.ResizeObserver(schedule)
       const mutations = new win.MutationObserver(schedule)
+      let scrolled = null
       const observe = () => {
+        scrolled?.removeEventListener('scroll', schedule)
+        scrolled = nav
+        nav.addEventListener('scroll', schedule, { passive: true })
         resize.disconnect()
         mutations.disconnect()
         resize.observe(root)
@@ -296,6 +352,8 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
 
       function detach() {
         sash.remove()
+        region.removeAttribute(REGION_ATTR)
+        root.removeAttribute(RAIL_ATTR)
         root.removeAttribute(ROOT_ATTR)
         root.removeAttribute(CAPPED_ATTR)
         root.removeAttribute(HIDDEN_ATTR)
@@ -307,6 +365,7 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
         /** Follow a re-rendered list or region inside the same root. */
         adopt(next) {
           if (next.nav === nav && next.region === region) return
+          if (next.region !== region) region.removeAttribute(REGION_ATTR)
           nav = next.nav
           region = next.region
           observe()
@@ -321,6 +380,7 @@ html[${DRAGGING_ATTR}], html[${DRAGGING_ATTR}] * {
           if (frame !== 0) win.cancelAnimationFrame(frame)
           resize.disconnect()
           mutations.disconnect()
+          scrolled?.removeEventListener('scroll', schedule)
           if (drag !== null) doc.documentElement.removeAttribute(DRAGGING_ATTR)
           detach()
           if (nav.id.startsWith('dsh-sidebar-split-list-')) nav.removeAttribute('id')

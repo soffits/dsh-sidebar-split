@@ -11,4 +11,4 @@
 
 - Default: the list takes at most half the shared height. A list that fits looks exactly as shipped, and there is no visible line until the list is cut off.
 - Workspaces keep at least 96 px. Dragging the list under 24 px hides it; double-click or double-tap toggles it, since DSH has no pane headers to click.
-- The icon rail (collapsed sidebar) is left alone: the plugin removes itself from the sidebar while it is collapsed.
+- The icon rail (collapsed sidebar) gets the same two groups with a short fixed divider between them, but no sash: the rail is 56 px wide with 36 px icons, so a drag target there would be fiddly and a second saved size would be one more thing to manage. Workspace icons keep their natural height (they are few and must stay reachable); the panel icons take what is left and scroll, with no visible scrollbar (it would shift icons in so narrow a column) and a bottom fade while more icons sit below.
