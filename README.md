@@ -12,7 +12,9 @@ With this plugin the panel list and Workspaces become two panes with a line betw
 - Until you drag, the list takes at most half of the shared height. If it fits, nothing changes from the stock sidebar.
 - The size is saved per browser (localStorage), so a desktop and a phone each keep their own, and other open tabs follow along.
 
-On touch screens the line is a little taller and has a grab handle. The collapsed icon rail is left exactly as shipped.
+On touch screens the line is a little taller and has a grab handle.
+
+When the sidebar is collapsed to its icon rail, a short divider separates the panel icons from the workspace icons. The workspace icons always stay in view, and the panel icons scroll on their own when the window is too short for all of them (a fade at the bottom shows there are more).
 
 ## Install
 
