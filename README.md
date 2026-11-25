@@ -1,3 +1,5 @@
+> **Moved.** This plugin is now part of [@soffits/dsh-web-tweaks](https://github.com/soffits/dsh-web-tweaks) (`features/sidebar-split`), with its history. This repository is archived.
+
 # dsh-sidebar-split
 
 Resizable panes for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH) Web UI sidebar, the way VS Code's side bar works.
